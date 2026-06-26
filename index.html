@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extrator SEI CSV</title>
+
+<style>
+
+    body{
+        font-family: Arial, sans-serif;
+        background:#f4f4f4;
+        padding:30px;
+    }
+
+    .container{
+        max-width:1000px;
+        margin:auto;
+        background:white;
+        padding:25px;
+        border-radius:10px;
+        box-shadow:0 0 10px rgba(0,0,0,0.1);
+    }
+
+    textarea{
+        width:100%;
+        height:300px;
+        padding:10px;
+        font-size:14px;
+        border-radius:8px;
+        border:1px solid #ccc;
+        resize:vertical;
+    }
+
+    button{
+        padding:12px 20px;
+        border:none;
+        border-radius:8px;
+        cursor:pointer;
+        margin-top:15px;
+        margin-right:10px;
+        font-size:15px;
+    }
+
+    .extrair{
+        background:#0066cc;
+        color:white;
+    }
+
+    .baixar{
+        background:#28a745;
+        color:white;
+    }
+
+    .limpar{
+        background:#dc3545;
+        color:white;
+    }
+
+    .excluir{
+        background:#ff6600;
+        color:white;
+        padding:6px 10px;
+        font-size:13px;
+        margin:0;
+    }
+
+    .vermelho{
+        color:red;
+        font-weight:bold;
+    }
+
+    .contador{
+        margin-top:20px;
+        font-size:18px;
+        font-weight:bold;
+        color:#0066cc;
+    }
+
+    button:hover{
+        opacity:0.9;
+    }
+
+    table{
+        width:100%;
+        border-collapse:collapse;
+        margin-top:25px;
+    }
+
+    th, td{
+        border:1px solid #ccc;
+        padding:10px;
+        text-align:left;
+    }
+
+    th{
+        background:#0066cc;
+        color:white;
+    }
+
+    /* Estilo do Rodapé Informativo */
+    .rodape-creditos {
+        margin-top: 35px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+        text-align: center;
+        font-size: 12px;
+        color: #666;
+        line-height: 1.6;
+    }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <h2>Extrator de Dados SEI para Excel/CSV</h2>
+
+    <textarea id="texto" placeholder="Cole um ou vários processos aqui..."></textarea>
+
+    <br>
+
+    <button class="extrair" onclick="extrairDados()">
+        Extrair Dados
+    </button>
+
+    <button class="baixar" onclick="baixarCSV()">
+        Baixar CSV
+    </button>
+
+    <button class="limpar" onclick="excluirTodos()">
+        Excluir Todos
+    </button>
+
+    <div class="contador">
+        Quantidade de Processos: <span id="contadorProcessos">0</span>
+    </div>
+
+    <table id="tabela">
+
+        <thead>
+            <tr>
+                <th>Selecionar</th>
+                <th>Nome</th>
+                <th>CPF</th>
+                <th>Valor a Ressarcir</th>
+                <th>Número do Processo</th>
+                <th>Ação</th>
+            </tr>
+        </thead>
+
+        <tbody></tbody>
+
+    </table>
+
+    <div class="rodape-creditos">
+        <strong>FERRAMENTA DE TRABALHO - DETRAN/SETAFANL</strong><br>
+        Desenvolvido por: Rodrigo da Silva Teixeira | Data de Criação: 01/06/2026<br>
+        Contato: <a href="mailto:rodrigo.teixeira@detran.rj.gov.br" style="color: #0066cc; text-decoration: none;">rodrigo.teixeira@detran.rj.gov.br</a><br>
+        <span style="color: #888; font-style: italic;">Código de uso gratuito e exclusivo para a unidade DETRAN - SETAFNAL. Modificações não autorizadas podem comprometer o funcionamento.</span>
+    </div>
+
+</div>
+
+<script>
+
+let registros = [];
+
+function ajustarProcesso(numero){
+
+    return numero.replace(/\/(\d{2})$/, '/20$1');
+
+}
+
+function extrairDados(){
+
+    const textarea = document.getElementById("texto");
+
+    const texto = textarea.value;
+
+    const blocos = texto.split(
+        /(?=PROCESSO\.\.\.:|No\.\s*PROCESSO\.:)/gi
+    );
+
+    blocos.forEach(bloco => {
+
+        const processoRegex =
+            /(PROCESSO\.\.\.:|No\.\s*PROCESSO\.:)\s*(SEI-\d+\/\d+\/\d+)/i;
+
+        const valorRegex =
+            /(VALOR À RESSARCIR|VALOR RESSARCIR):\s*([\d.,]+)/i;
+
+        const cpfRegex =
+            /CPF\/CNPJ\.{3,5}:\s*(\d+)/i;
+
+        const nomeRegex =
+            /(REQUERENTE|FAVORECIDO)\.*:\s*(.+)/i;
+
+        const processo = bloco.match(processoRegex);
+        const valor = bloco.match(valorRegex);
+        const cpf = bloco.match(cpfRegex);
+        const nome = bloco.match(nomeRegex);
+
+        if(!processo) return;
+
+        const numeroProcesso = ajustarProcesso(
+            processo[2].trim()
+        );
+
+        const existe = registros.some(
+            item => item.processo === numeroProcesso
+        );
+
+        if(existe) return;
+
+        const dados = {
+
+            nome: nome ? nome[2].trim() : "",
+
+            cpf: cpf ? cpf[1].trim().padStart(11, "0") : "",
+
+            valor: valor ? valor[2].trim() : "",
+
+            processo: numeroProcesso,
+
+            marcado:false
+
+        };
+
+        registros.push(dados);
+
+    });
+
+    atualizarTabela();
+
+    textarea.value = "";
+
+}
+
+function atualizarTabela(){
+
+    const tbody = document.querySelector("#tabela tbody");
+
+    tbody.innerHTML = "";
+
+    registros.forEach((item, index) => {
+
+        const classe = item.marcado ? "vermelho" : "";
+
+        const linha = `
+            <tr>
+
+                <td>
+                    <input type="checkbox"
+                        ${item.marcado ? "checked" : ""}
+                        onchange="marcarRegistro(${index}, this.checked)">
+                </td>
+
+                <td>${item.nome}</td>
+
+                <td class="${classe}">
+                    ${item.cpf}
+                    <button class="excluir"
+                        onclick="copiarTexto('${item.cpf}')">
+                        Copiar
+                    </button>
+                </td>
+
+                <td class="${classe}">
+                    ${item.valor}
+                    <button class="excluir"
+                        onclick="copiarTexto('${item.valor}')">
+                        Copiar
+                    </button>
+                </td>
+
+                <td class="${classe}">
+                    ${item.processo}
+                    <button class="excluir"
+                        onclick="copiarTexto('${item.processo}')">
+                        Copiar
+                    </button>
+                </td>
+
+                <td>
+                    <button class="excluir"
+                        onclick="excluirRegistro(${index})">
+                        Excluir
+                    </button>
+                </td>
+
+            </tr>
+        `;
+
+        tbody.innerHTML += linha;
+
+    });
+
+    atualizarContador();
+
+}
+
+function atualizarContador(){
+
+    document.getElementById("contadorProcessos").innerText =
+        registros.length;
+
+}
+
+function marcarRegistro(index, valor){
+
+    registros[index].marcado = valor;
+
+    atualizarTabela();
+
+}
+
+function copiarTexto(texto){
+
+    navigator.clipboard.writeText(texto);
+
+}
+
+function excluirRegistro(index){
+
+    registros.splice(index, 1);
+
+    atualizarTabela();
+
+}
+
+function excluirTodos(){
+
+    registros = [];
+
+    atualizarTabela();
+
+}
+
+function baixarCSV(){
+
+    if(registros.length === 0){
+
+        return;
+
+    }
+
+    let csv =
+`Nome;CPF;Valor a Ressarcir;Numero do Processo\n`;
+
+    registros.forEach(item => {
+
+        csv +=
+`"${item.nome}";"${item.cpf}";"${item.valor}";"${item.processo}"\n`;
+
+    });
+
+    const blob = new Blob(
+        ["\uFEFF" + csv],
+        { type: "text/csv;charset=utf-8;" }
+    );
+
+    const link = document.createElement("a");
+
+    link.href = URL.createObjectURL(blob);
+
+    link.download = "dados_sei.csv";
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+}
+
+</script>
+
+</body>
+</html>
