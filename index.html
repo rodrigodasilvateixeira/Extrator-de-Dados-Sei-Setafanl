@@ -6,99 +6,113 @@
 <title>Extrator SEI CSV</title>
 
 <style>
-
-    body{
+    body {
         font-family: Arial, sans-serif;
-        background:#f4f4f4;
-        padding:30px;
+        background: #f4f4f4;
+        padding: 30px;
     }
 
-    .container{
-        max-width:1000px;
-        margin:auto;
-        background:white;
-        padding:25px;
-        border-radius:10px;
-        box-shadow:0 0 10px rgba(0,0,0,0.1);
+    .container {
+        max-width: 1100px;
+        margin: auto;
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
 
-    textarea{
-        width:100%;
-        height:300px;
-        padding:10px;
-        font-size:14px;
-        border-radius:8px;
-        border:1px solid #ccc;
-        resize:vertical;
+    textarea {
+        width: 100%;
+        height: 250px;
+        padding: 12px;
+        font-size: 14px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        resize: vertical;
+        box-sizing: border-box;
     }
 
-    button{
-        padding:12px 20px;
-        border:none;
-        border-radius:8px;
-        cursor:pointer;
-        margin-top:15px;
-        margin-right:10px;
-        font-size:15px;
+    button {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 15px;
+        margin-right: 10px;
+        font-size: 15px;
+        font-weight: bold;
+        transition: background 0.2s, opacity 0.2s;
     }
 
-    .extrair{
-        background:#0066cc;
-        color:white;
+    button:hover {
+        opacity: 0.9;
     }
 
-    .baixar{
-        background:#28a745;
-        color:white;
+    .extrair { background: #0066cc; color: white; }
+    .baixar { background: #28a745; color: white; }
+    .limpar { background: #dc3545; color: white; }
+
+    /* Botões pequenos da tabela */
+    .btn-tabela {
+        padding: 5px 10px;
+        font-size: 12px;
+        margin: 0 2px;
+        border-radius: 4px;
+        margin-top: 0;
+    }
+    
+    .copiar { background: #17a2b8; color: white; }
+    .excluir { background: #dc3545; color: white; }
+
+    /* Mudança visual para a linha selecionada */
+    .linha-marcada {
+        background-color: #ffe6e6 !important;
+    }
+    .vermelho {
+        color: #d9534f;
+        font-weight: bold;
     }
 
-    .limpar{
-        background:#dc3545;
-        color:white;
+    .contador {
+        margin-top: 20px;
+        font-size: 18px;
+        font-weight: bold;
+        color: #0066cc;
     }
 
-    .excluir{
-        background:#ff6600;
-        color:white;
-        padding:6px 10px;
-        font-size:13px;
-        margin:0;
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 25px;
     }
 
-    .vermelho{
-        color:red;
-        font-weight:bold;
+    th, td {
+        border: 1px solid #ccc;
+        padding: 10px;
+        text-align: left;
     }
 
-    .contador{
-        margin-top:20px;
-        font-size:18px;
-        font-weight:bold;
-        color:#0066cc;
+    th {
+        background: #0066cc;
+        color: white;
     }
 
-    button:hover{
-        opacity:0.9;
+    tr:nth-child(even) {
+        background-color: #f9f9f9;
     }
 
-    table{
-        width:100%;
-        border-collapse:collapse;
-        margin-top:25px;
+    /* Checkbox aumentado e centralizado */
+    table input[type="checkbox"] {
+        transform: scale(1.8);
+        margin: 5px;
+        cursor: pointer;
+    }
+    
+    .td-acoes {
+        white-space: nowrap;
     }
 
-    th, td{
-        border:1px solid #ccc;
-        padding:10px;
-        text-align:left;
-    }
-
-    th{
-        background:#0066cc;
-        color:white;
-    }
-
-    /* Estilo do Rodapé Informativo */
+    /* Estilo do Rodapé de Autoria no Layout */
     .rodape-creditos {
         margin-top: 35px;
         padding-top: 15px;
@@ -108,7 +122,6 @@
         color: #666;
         line-height: 1.6;
     }
-
 </style>
 </head>
 <body>
@@ -121,37 +134,26 @@
 
     <br>
 
-    <button class="extrair" onclick="extrairDados()">
-        Extrair Dados
-    </button>
-
-    <button class="baixar" onclick="baixarCSV()">
-        Baixar CSV
-    </button>
-
-    <button class="limpar" onclick="excluirTodos()">
-        Excluir Todos
-    </button>
+    <button class="extrair" onclick="extrairDados()">Extrair Dados</button>
+    <button class="baixar" onclick="baixarCSV()">Baixar CSV</button>
+    <button class="limpar" onclick="excluirTodos()">Excluir Todos</button>
 
     <div class="contador">
         Quantidade de Processos: <span id="contadorProcessos">0</span>
     </div>
 
     <table id="tabela">
-
         <thead>
             <tr>
-                <th>Selecionar</th>
+                <th style="width: 50px; text-align: center;">Sel.</th>
                 <th>Nome</th>
                 <th>CPF</th>
                 <th>Valor a Ressarcir</th>
                 <th>Número do Processo</th>
-                <th>Ação</th>
+                <th style="width: 80px;">Ação</th>
             </tr>
         </thead>
-
         <tbody></tbody>
-
     </table>
 
     <div class="rodape-creditos">
@@ -168,34 +170,23 @@
 let registros = [];
 
 function ajustarProcesso(numero){
-
     return numero.replace(/\/(\d{2})$/, '/20$1');
-
 }
 
 function extrairDados(){
-
     const textarea = document.getElementById("texto");
-
     const texto = textarea.value;
 
-    const blocos = texto.split(
-        /(?=PROCESSO\.\.\.:|No\.\s*PROCESSO\.:)/gi
-    );
+    if (!texto.trim()) return;
+
+    // Divisão flexível baseada nas tags comuns do SEI
+    const blocos = texto.split(/(?=PROCESSO\.\.\.:|No\.\s*PROCESSO\.:)/gi);
 
     blocos.forEach(bloco => {
-
-        const processoRegex =
-            /(PROCESSO\.\.\.:|No\.\s*PROCESSO\.:)\s*(SEI-\d+\/\d+\/\d+)/i;
-
-        const valorRegex =
-            /(VALOR À RESSARCIR|VALOR RESSARCIR):\s*([\d.,]+)/i;
-
-        const cpfRegex =
-            /CPF\/CNPJ\.{3,5}:\s*(\d+)/i;
-
-        const nomeRegex =
-            /(REQUERENTE|FAVORECIDO)\.*:\s*(.+)/i;
+        const processoRegex = /(PROCESSO\.\.\.:|No\.\s*PROCESSO\.:)\s*(SEI-\d+\/\d+\/\d+)/i;
+        const valorRegex = /(VALOR À RESSARCIR|VALOR RESSARCIR):\s*([\d.,]+)/i;
+        const cpfRegex = /CPF\/CNPJ\.{3,5}:\s*([\d.\-/]+)/i; // Melhorado para aceitar pontuação se houver
+        const nomeRegex = /(REQUERENTE|FAVORECIDO)\.*:\s*([^\n\r]+)/i;
 
         const processo = bloco.match(processoRegex);
         const valor = bloco.match(valorRegex);
@@ -204,178 +195,126 @@ function extrairDados(){
 
         if(!processo) return;
 
-        const numeroProcesso = ajustarProcesso(
-            processo[2].trim()
-        );
+        const numeroProcesso = ajustarProcesso(processo[2].trim());
 
-        const existe = registros.some(
-            item => item.processo === numeroProcesso
-        );
-
+        // Evita duplicados
+        const existe = registros.some(item => item.processo === numeroProcesso);
         if(existe) return;
 
+        // Limpa apenas números do CPF e aplica o pad se for CPF puro
+        let cpfLimpo = cpf ? cpf[1].replace(/\D/g, "") : "";
+        if (cpfLimpo.length <= 11) {
+            cpfLimpo = cpfLimpo.padStart(11, "0");
+        }
+
         const dados = {
-
             nome: nome ? nome[2].trim() : "",
-
-            cpf: cpf ? cpf[1].trim().padStart(11, "0") : "",
-
+            cpf: cpfLimpo,
             valor: valor ? valor[2].trim() : "",
-
             processo: numeroProcesso,
-
-            marcado:false
-
+            marcado: false
         };
 
         registros.push(dados);
-
     });
 
     atualizarTabela();
-
     textarea.value = "";
-
 }
 
 function atualizarTabela(){
-
     const tbody = document.querySelector("#tabela tbody");
-
     tbody.innerHTML = "";
 
-    registros.forEach((item, index) => {
+    const linhasHtml = registros.map((item, index) => {
+        const classeLinha = item.marcado ? "linha-marcada" : "";
+        const classeTexto = item.marcado ? "vermelho" : "";
 
-        const classe = item.marcado ? "vermelho" : "";
-
-        const linha = `
-            <tr>
-
-                <td>
-                    <input type="checkbox"
-                        ${item.marcado ? "checked" : ""}
+        return `
+            <tr class="${classeLinha}">
+                <td style="text-align: center;">
+                    <input type="checkbox" 
+                        ${item.marcado ? "checked" : ""} 
                         onchange="marcarRegistro(${index}, this.checked)">
                 </td>
-
-                <td>${item.nome}</td>
-
-                <td class="${classe}">
-                    ${item.cpf}
-                    <button class="excluir"
-                        onclick="copiarTexto('${item.cpf}')">
-                        Copiar
-                    </button>
+                <td class="${classeTexto}">${item.nome}</td>
+                <td class="${classeTexto}">
+                    ${item.cpf} 
+                    <button class="btn-tabela copiar" onclick="copiarTexto('${item.cpf}')">Copiar</button>
                 </td>
-
-                <td class="${classe}">
-                    ${item.valor}
-                    <button class="excluir"
-                        onclick="copiarTexto('${item.valor}')">
-                        Copiar
-                    </button>
+                <td class="${classeTexto}">
+                    ${item.valor} 
+                    <button class="btn-tabela copiar" onclick="copiarTexto('${item.valor}')">Copiar</button>
                 </td>
-
-                <td class="${classe}">
-                    ${item.processo}
-                    <button class="excluir"
-                        onclick="copiarTexto('${item.processo}')">
-                        Copiar
-                    </button>
+                <td class="${classeTexto}">
+                    ${item.processo} 
+                    <button class="btn-tabela copiar" onclick="copiarTexto('${item.processo}')">Copiar</button>
                 </td>
-
-                <td>
-                    <button class="excluir"
-                        onclick="excluirRegistro(${index})">
-                        Excluir
-                    </button>
+                <td class="td-acoes">
+                    <button class="btn-tabela excluir" onclick="excluirRegistro(${index})">Excluir</button>
                 </td>
-
             </tr>
         `;
-
-        tbody.innerHTML += linha;
-
     });
 
+    tbody.innerHTML = linhasHtml.join('');
     atualizarContador();
-
 }
 
 function atualizarContador(){
-
-    document.getElementById("contadorProcessos").innerText =
-        registros.length;
-
+    document.getElementById("contadorProcessos").innerText = registros.length;
 }
 
 function marcarRegistro(index, valor){
-
     registros[index].marcado = valor;
 
+    if (valor && registros[index].cpf) {
+        navigator.clipboard.writeText(registros[index].cpf).catch(err => {
+            console.error('Erro ao copiar CPF automaticamente: ', err);
+        });
+    }
     atualizarTabela();
-
 }
 
 function copiarTexto(texto){
-
     navigator.clipboard.writeText(texto);
-
 }
 
 function excluirRegistro(index){
-
     registros.splice(index, 1);
-
     atualizarTabela();
-
 }
 
 function excluirTodos(){
-
-    registros = [];
-
-    atualizarTabela();
-
+    if(confirm("Tem certeza que deseja apagar todos os registros da tabela?")) {
+        registros = [];
+        atualizarTabela();
+    }
 }
 
 function baixarCSV(){
+    if(registros.length === 0) return;
 
-    if(registros.length === 0){
-
-        return;
-
-    }
-
-    let csv =
-`Nome;CPF;Valor a Ressarcir;Numero do Processo\n`;
+    let csv = `Nome;CPF;Valor a Ressarcir;Numero do Processo\n`;
 
     registros.forEach(item => {
-
-        csv +=
-`"${item.nome}";"${item.cpf}";"${item.valor}";"${item.processo}"\n`;
-
+        csv += `"${item.nome}";"${item.cpf}";"${item.valor}";"${item.processo}"\n`;
     });
 
     const blob = new Blob(
-        ["\uFEFF" + csv],
+        ["\uFEFF" + csv], 
         { type: "text/csv;charset=utf-8;" }
     );
 
     const link = document.createElement("a");
-
     link.href = URL.createObjectURL(blob);
-
     link.download = "dados_sei.csv";
-
     document.body.appendChild(link);
-
     link.click();
-
     document.body.removeChild(link);
-
 }
-
 </script>
 
 </body>
 </html>
+
