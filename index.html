@@ -13,7 +13,7 @@
     }
 
     .container {
-        max-width: 1200px;
+        max-width: 1300px;
         margin: auto;
         background: white;
         padding: 25px;
@@ -131,7 +131,7 @@
         <button class="extrair" onclick="extrairDados()">Extrair Dados</button>
         <button class="baixar" onclick="baixarCSV()">Baixar CSV</button>
         <button class="limpar" onclick="excluirTodos()">Excluir Todos</button>
-        <input type="text" id="campoBusca" class="input-busca" placeholder="🔍 Filtrar por Nome, CPF/CNPJ ou Processo na tabela..." oninput="filtrarTabela()">
+        <input type="text" id="campoBusca" class="input-busca" placeholder="🔍 Filtrar por Nome, CPF/CNPJ, Processo ou Valor na tabela..." oninput="filtrarTabela()">
     </div>
 
     <div class="contador">
@@ -144,6 +144,7 @@
                 <th style="width: 50px; text-align: center;">Sel.</th>
                 <th>Nome / Requerente</th>
                 <th>CPF / CNPJ</th>
+                <th>Valor a Ressarcir</th>
                 <th>Número do Processo</th>
                 <th style="width: 100px; text-align: center;">Ações</th>
             </tr>
@@ -154,7 +155,7 @@
     <div class="rodape-creditos">
         <strong>FERRAMENTA DE TRABALHO - DETRAN/SETAFANL</strong><br>
         Versão Otimizada para Excel | Desenvolvido por: Rodrigo da Silva Teixeira | Modificado em: 01/07/2026<br>
-        <span style="color: #888; font-style: italic;">Nota: Banco, Agência, CPF, CNPJ e Conta+DV possuem travas de formatação de texto para impedir que o Excel suma com os zeros à esquerda.</span>
+        <span style="color: #888; font-style: italic;">Nota: Banco, Agência, CPF, CNPJ, Conta+DV e Valor possuem travas de formatação de texto para impedir que o Excel suma com os zeros à esquerda ou desconfigure decimais.</span>
     </div>
 
 </div>
@@ -179,6 +180,7 @@ function extrairDados(){
         const processoRegex = /PROCESSO\.*\s*:\s*(SEI-\d+\/\d+\/\d+)/i;
         const nomeRegex = /REQUERENTE\.*\s*:\s*([^\n\r]+)/i;
         const cpfRegex = /CPF\/CNPJ\.*\s*:\s*([\d.\-/]+)/i;
+        const valorRegex = /VALOR À RESSARCIR\.*\s*:\s*([\d,.]+)/i;
         
         const bancoRegex = /BANCO\.*\s*:\s*(\d+)/i;
         const agenciaRegex = /AGÊNCIA\.*\s*:\s*([\w\d]+)/i;
@@ -188,6 +190,7 @@ function extrairDados(){
         const processo = bloco.match(processoRegex);
         const nome = bloco.match(nomeRegex);
         const cpf = bloco.match(cpfRegex);
+        const valor = bloco.match(valorRegex);
         const banco = bloco.match(bancoRegex);
         const agencia = bloco.match(agenciaRegex);
         const conta = bloco.match(contaRegex);
@@ -233,6 +236,7 @@ function extrairDados(){
             nome: nome ? nome[1].trim() : "",
             cpf: docLimpo,
             processo: numeroProcesso,
+            valorRessarcir: valor ? valor[1].trim() : "0,00",
             banco: bancoLimpo,
             agencia: agenciaLimpa,
             conta: contaCorrenteCompleta,
@@ -259,6 +263,7 @@ function atualizarTabela(dadosParaExibir = registros){
         const avisoIncompleto = item.incompleto ? `<span class="alerta-texto">⚠️ Dados bancários ausentes no bloco capturado</span>` : "";
         const indexReal = registros.findIndex(r => r.processo === item.processo);
 
+        // MODIFICADO: Colunas reordenadas no HTML da tabela (Nome -> CPF -> Valor -> Processo -> Ações)
         return `
             <tr class="${classeLinha}">
                 <td style="text-align: center;">
@@ -270,6 +275,9 @@ function atualizarTabela(dadosParaExibir = registros){
                 <td class="${classeTexto}">
                     ${item.cpf} 
                     <button class="btn-tabela copiar" onclick="copiarTexto('${item.cpf}')">Copiar</button>
+                </td>
+                <td class="${classeTexto}">
+                    R$ ${item.valorRessarcir}
                 </td>
                 <td class="${classeTexto}">
                     ${item.processo} 
@@ -295,7 +303,8 @@ function filtrarTabela(){
     const filtrados = registros.filter(item => 
         item.nome.toLowerCase().includes(termo) || 
         item.cpf.includes(termo) || 
-        item.processo.toLowerCase().includes(termo)
+        item.processo.toLowerCase().includes(termo) ||
+        item.valorRessarcir.includes(termo)
     );
     atualizarTabela(filtrados);
 }
@@ -330,10 +339,10 @@ function excluirTodos(){
 function baixarCSV(){
     if(registros.length === 0) return;
 
-    let csv = `Nome;CPF;Numero do Processo;Banco;Agencia;Conta Corrente\n`;
+    let csv = `Nome;CPF;Numero do Processo;Valor a Ressarcir;Banco;Agencia;Conta Corrente\n`;
 
     registros.forEach(item => {
-        csv += `"${item.nome}";="${item.cpf}";"${item.processo}";="${item.banco}";="${item.agencia}";="${item.conta}"\n`;
+        csv += `"${item.nome}";="${item.cpf}";"${item.processo}";="${item.valorRessarcir}";="${item.banco}";="${item.agencia}";="${item.conta}"\n`;
     });
 
     const blob = new Blob(
