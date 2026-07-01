@@ -72,7 +72,6 @@
     
     .copiar { background: #17a2b8; color: white; }
     .excluir { background: #dc3545; color: white; }
-    .copiar-linha { background: #6c757d; color: white; }
 
     .linha-marcada { background-color: #ffe6e6 !important; }
     .linha-alerta { background-color: #fff3cd !important; }
@@ -146,7 +145,7 @@
                 <th>Nome / Requerente</th>
                 <th>CPF / CNPJ</th>
                 <th>Número do Processo</th>
-                <th style="width: 150px; text-align: center;">Ações</th>
+                <th style="width: 100px; text-align: center;">Ações</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -224,7 +223,6 @@ function extrairDados(){
         let contaCorrenteCompleta = "";
         if (conta) {
             const numConta = conta[1].trim();
-            // MODIFICADO: Se 'dv' existir e tiver conteúdo, usa ele. Caso contrário, adota "0" por padrão.
             const digito = (dv && dv[1].trim()) ? dv[1].trim().toUpperCase() : "0"; 
             contaCorrenteCompleta = numConta + digito; 
         }
@@ -278,7 +276,6 @@ function atualizarTabela(dadosParaExibir = registros){
                     <button class="btn-tabela copiar" onclick="copiarTexto('${item.processo}')">Copiar</button>
                 </td>
                 <td class="td-acoes" style="text-align: center;">
-                    <button class="btn-tabela copiar-linha" onclick="copiarLinhaInteira(${indexReal})" title="Copiar todos os dados organizados em texto">Copiar Tudo</button>
                     <button class="btn-tabela excluir" onclick="excluirRegistro(${indexReal})">Excluir</button>
                 </td>
             </tr>
@@ -301,14 +298,6 @@ function filtrarTabela(){
         item.processo.toLowerCase().includes(termo)
     );
     atualizarTabela(filtrados);
-}
-
-function copiarLinhaInteira(index){
-    const r = registros[index];
-    const textoFormatado = `${r.nome};${r.cpf};${r.processo};${r.banco};${r.agencia};${r.conta}`;
-    navigator.clipboard.writeText(textoFormatado).then(() => {
-        alert("Dados consolidados copiados com sucesso!");
-    });
 }
 
 function marcarRegistro(index, valor){
@@ -341,12 +330,9 @@ function excluirTodos(){
 function baixarCSV(){
     if(registros.length === 0) return;
 
-    // Cabeçalho básico do CSV
     let csv = `Nome;CPF;Numero do Processo;Banco;Agencia;Conta Corrente\n`;
 
     registros.forEach(item => {
-        // SOLUÇÃO EXCEL: O prefixo ="..." força o Excel a ler o campo estritamente como texto literal,
-        // preservando os 11 dígitos do CPF, 14 do CNPJ e zeros à esquerda de Bancos e Agências.
         csv += `"${item.nome}";="${item.cpf}";"${item.processo}";="${item.banco}";="${item.agencia}";="${item.conta}"\n`;
     });
 
