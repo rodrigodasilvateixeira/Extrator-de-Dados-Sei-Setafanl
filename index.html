@@ -203,7 +203,6 @@ function extrairDados(){
         const existe = registros.some(item => item.processo === numeroProcesso);
         if (existe) return;
 
-        // Trata o tamanho do CPF (até 11 dgt) ou CNPJ (mais de 11 dgt vira 14 dgt)
         let docLimpo = cpf ? cpf[1].replace(/\D/g, "").trim() : "";
         if (docLimpo.length > 0) {
             if (docLimpo.length <= 11) {
@@ -263,7 +262,6 @@ function atualizarTabela(dadosParaExibir = registros){
         const avisoIncompleto = item.incompleto ? `<span class="alerta-texto">⚠️ Dados bancários ausentes no bloco capturado</span>` : "";
         const indexReal = registros.findIndex(r => r.processo === item.processo);
 
-        // MODIFICADO: Colunas reordenadas no HTML da tabela (Nome -> CPF -> Valor -> Processo -> Ações)
         return `
             <tr class="${classeLinha}">
                 <td style="text-align: center;">
@@ -277,7 +275,8 @@ function atualizarTabela(dadosParaExibir = registros){
                     <button class="btn-tabela copiar" onclick="copiarTexto('${item.cpf}')">Copiar</button>
                 </td>
                 <td class="${classeTexto}">
-                    R$ ${item.valorRessarcir}
+                    ${item.valorRessarcir} 
+                    <button class="btn-tabela copiar" onclick="copiarTexto('${item.valorRessarcir}')">Copiar</button>
                 </td>
                 <td class="${classeTexto}">
                     ${item.processo} 
