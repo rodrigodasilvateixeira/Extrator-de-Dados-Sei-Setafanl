@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Extrator SEI CSV</title>
+<title>Extrator SEI - Restituição Bancária</title>
 
 <style>
     body {
@@ -52,7 +52,6 @@
     .baixar { background: #28a745; color: white; }
     .limpar { background: #dc3545; color: white; }
 
-    /* Botões pequenos da tabela */
     .btn-tabela {
         padding: 5px 10px;
         font-size: 12px;
@@ -64,7 +63,6 @@
     .copiar { background: #17a2b8; color: white; }
     .excluir { background: #dc3545; color: white; }
 
-    /* Mudança visual para a linha selecionada */
     .linha-marcada {
         background-color: #ffe6e6 !important;
     }
@@ -101,7 +99,6 @@
         background-color: #f9f9f9;
     }
 
-    /* Checkbox aumentado e centralizado */
     table input[type="checkbox"] {
         transform: scale(1.8);
         margin: 5px;
@@ -112,7 +109,6 @@
         white-space: nowrap;
     }
 
-    /* Estilo do Rodapé de Autoria no Layout */
     .rodape-creditos {
         margin-top: 35px;
         padding-top: 15px;
@@ -130,12 +126,12 @@
 
     <h2>Extrator de Dados SEI para Excel/CSV</h2>
 
-    <textarea id="texto" placeholder="Cole um ou vários processos aqui..."></textarea>
+    <textarea id="texto" placeholder="Cole um ou vários processos no formato do layout aqui..."></textarea>
 
     <br>
 
     <button class="extrair" onclick="extrairDados()">Extrair Dados</button>
-    <button class="baixar" onclick="baixarCSV()">Baixar CSV</button>
+    <button class="baixar" onclick="baixarCSV()">Baixar CSV (Com Dados Bancários)</button>
     <button class="limpar" onclick="excluirTodos()">Excluir Todos</button>
 
     <div class="contador">
@@ -146,9 +142,8 @@
         <thead>
             <tr>
                 <th style="width: 50px; text-align: center;">Sel.</th>
-                <th>Nome</th>
-                <th>CPF</th>
-                <th>Valor a Ressarcir</th>
+                <th>Nome / Requerente</th>
+                <th>CPF / CNPJ</th>
                 <th>Número do Processo</th>
                 <th style="width: 80px;">Ação</th>
             </tr>
@@ -158,9 +153,8 @@
 
     <div class="rodape-creditos">
         <strong>FERRAMENTA DE TRABALHO - DETRAN/SETAFANL</strong><br>
-        Desenvolvido por: Rodrigo da Silva Teixeira | Data de Criação: 01/06/2026<br>
-        Contato: <a href="mailto:rodrigo.teixeira@detran.rj.gov.br" style="color: #0066cc; text-decoration: none;">rodrigo.teixeira@detran.rj.gov.br</a><br>
-        <span style="color: #888; font-style: italic;">Código de uso gratuito e exclusivo para a unidade DETRAN - SETAFANL. Modificações não autorizadas podem comprometer o funcionamento.</span>
+        Desenvolvido por: Rodrigo da Silva Teixeira | Data de Modificação: 01/07/2026<br>
+        <span style="color: #888; font-style: italic;">Nota: Banco (3 dígitos), Agência (4 dígitos) e Conta+DV (sem separador) são processados em segundo plano e inseridos automaticamente apenas no arquivo CSV gerado.</span>
     </div>
 
 </div>
@@ -179,39 +173,70 @@ function extrairDados(){
 
     if (!texto.trim()) return;
 
-    // Divisão flexível baseada nas tags comuns do SEI
-    const blocos = texto.split(/(?=PROCESSO\.\.\.:|No\.\s*PROCESSO\.:)/gi);
+    // Divide os blocos quando encontra a palavra PROCESSO
+    const blocos = texto.split(/(?=PROCESSO\.*\s*:)/gi);
 
     blocos.forEach(bloco => {
-        const processoRegex = /(PROCESSO\.\.\.:|No\.\s*PROCESSO\.:)\s*(SEI-\d+\/\d+\/\d+)/i;
-        const valorRegex = /(VALOR À RESSARCIR|VALOR RESSARCIR):\s*([\d.,]+)/i;
-        const cpfRegex = /CPF\/CNPJ\.{3,5}:\s*([\d.\-/]+)/i; // Melhorado para aceitar pontuação se houver
-        const nomeRegex = /(REQUERENTE|FAVORECIDO)\.*:\s*([^\n\r]+)/i;
+        // Expressões Regulares ajustadas com precisão para o seu layout exato
+        const processoRegex = /PROCESSO\.*\s*:\s*(SEI-\d+\/\d+\/\d+)/i;
+        const nomeRegex = /REQUERENTE\.*\s*:\s*([^\n\r]+)/i;
+        const cpfRegex = /CPF\/CNPJ\.*\s*:\s*([\d.\-/]+)/i;
+        
+        const bancoRegex = /BANCO\.*\s*:\s*(\d+)/i;
+        const agenciaRegex = /AGÊNCIA\.*\s*:\s*([\w\d]+)/i;
+        const contaRegex = /CONTA\.*\s*:\s*(\d+)/i;
+        const dvRegex = /DV\.*\s*:\s*([\w\d]+)/i;
 
         const processo = bloco.match(processoRegex);
-        const valor = bloco.match(valorRegex);
-        const cpf = bloco.match(cpfRegex);
         const nome = bloco.match(nomeRegex);
+        const cpf = bloco.match(cpfRegex);
+        const banco = bloco.match(bancoRegex);
+        const agencia = bloco.match(agenciaRegex);
+        const conta = bloco.match(contaRegex);
+        const dv = bloco.match(dvRegex);
 
-        if(!processo) return;
+        if (!processo) return;
 
-        const numeroProcesso = ajustarProcesso(processo[2].trim());
+        const numeroProcesso = ajustarProcesso(processo[1].trim());
 
         // Evita duplicados
         const existe = registros.some(item => item.processo === numeroProcesso);
-        if(existe) return;
+        if (existe) return;
 
-        // Limpa apenas números do CPF e aplica o pad se for CPF puro
-        let cpfLimpo = cpf ? cpf[1].replace(/\D/g, "") : "";
-        if (cpfLimpo.length <= 11) {
+        // Limpa e formata o CPF com preenchimento de zeros à esquerda se necessário
+        let cpfLimpo = cpf ? cpf[1].replace(/\D/g, "").trim() : "";
+        if (cpfLimpo.length > 0 && cpfLimpo.length <= 11) {
             cpfLimpo = cpfLimpo.padStart(11, "0");
         }
 
+        // Limpa e formata o Banco com preenchimento de zeros à esquerda para ter 3 dígitos
+        let bancoLimpo = banco ? banco[1].replace(/\D/g, "").trim() : "";
+        if (bancoLimpo.length > 0 && bancoLimpo.length < 3) {
+            bancoLimpo = bancoLimpo.padStart(3, "0");
+        }
+
+        // Limpa e formata a Agência removendo ponto final se houver e aplicando o pad de 4 dígitos
+        let agenciaLimpa = agencia ? agencia[1].trim().replace(/\.$/, "") : "";
+        if (agenciaLimpa.length > 0 && agenciaLimpa.length < 4) {
+            agenciaLimpa = agenciaLimpa.padStart(4, "0");
+        }
+
+        // Monta a conta corrente juntando o número capturado diretamente ao DV (sem qualquer separador)
+        let contaCorrenteCompleta = "";
+        if (conta) {
+            const numConta = conta[1].trim();
+            const digito = dv ? dv[1].trim() : "";
+            contaCorrenteCompleta = numConta + digito;
+        }
+
         const dados = {
-            nome: nome ? nome[2].trim() : "",
+            nome: nome ? nome[1].trim() : "",
             cpf: cpfLimpo,
-            valor: valor ? valor[2].trim() : "",
             processo: numeroProcesso,
+            // Dados capturados ocultos que vão apenas para o CSV
+            banco: bancoLimpo,
+            agencia: agenciaLimpa,
+            conta: contaCorrenteCompleta,
             marcado: false
         };
 
@@ -226,7 +251,7 @@ function atualizarTabela(){
     const tbody = document.querySelector("#tabela tbody");
     tbody.innerHTML = "";
 
-    const linhasHtml = registros.map((item, index) => {
+    const linesHtml = registros.map((item, index) => {
         const classeLinha = item.marcado ? "linha-marcada" : "";
         const classeTexto = item.marcado ? "vermelho" : "";
 
@@ -243,10 +268,6 @@ function atualizarTabela(){
                     <button class="btn-tabela copiar" onclick="copiarTexto('${item.cpf}')">Copiar</button>
                 </td>
                 <td class="${classeTexto}">
-                    ${item.valor} 
-                    <button class="btn-tabela copiar" onclick="copiarTexto('${item.valor}')">Copiar</button>
-                </td>
-                <td class="${classeTexto}">
                     ${item.processo} 
                     <button class="btn-tabela copiar" onclick="copiarTexto('${item.processo}')">Copiar</button>
                 </td>
@@ -257,7 +278,7 @@ function atualizarTabela(){
         `;
     });
 
-    tbody.innerHTML = linhasHtml.join('');
+    tbody.innerHTML = linesHtml.join('');
     atualizarContador();
 }
 
@@ -295,10 +316,11 @@ function excluirTodos(){
 function baixarCSV(){
     if(registros.length === 0) return;
 
-    let csv = `Nome;CPF;Valor a Ressarcir;Numero do Processo\n`;
+    // Cabeçalho montado com os novos campos gerados dinamicamente
+    let csv = `Nome;CPF;Numero do Processo;Banco;Agencia;Conta Corrente\n`;
 
     registros.forEach(item => {
-        csv += `"${item.nome}";"${item.cpf}";"${item.valor}";"${item.processo}"\n`;
+        csv += `"${item.nome}";"${item.cpf}";"${item.processo}";"${item.banco}";"${item.agencia}";"${item.conta}"\n`;
     });
 
     const blob = new Blob(
@@ -308,7 +330,7 @@ function baixarCSV(){
 
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "dados_sei.csv";
+    link.download = "dados_restituicao_sei.csv";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -317,4 +339,3 @@ function baixarCSV(){
 
 </body>
 </html>
-
